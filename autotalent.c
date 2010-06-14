@@ -28,7 +28,6 @@
 #include <string.h>
 #include <math.h>
 #include <stdio.h>
-#include <android/log.h>
 
 #define PI (float)3.14159265358979323846
 #define L2SC (float)3.32192809488736218171
@@ -174,9 +173,9 @@ void fft_inverse(fft_vars* membvars, float* input_re, float* input_im, float* ou
 #define KEY_D_Ab -1
 
 
-/*************************
- *  THE MEMBER VARIABLES *
- *************************/
+  /*************************
+   *  THE MEMBER VARIABLES *
+   *************************/
 
 typedef struct {
 
@@ -442,8 +441,6 @@ void setAutotalentKey(Autotalent * autotalent, char * keyPtr) {
   }
 
   autotalent->m_pfKey = key;
-  __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "A: %d, Bb: %d, B: %d, C: %d, Db: %d, D: %d, Eb: %d, E: %d, F: %d, Gb: %d, G: %d, Ab: %d",
-		  autotalent->m_pfKey[AT_A], autotalent->m_pfKey[AT_Bb], autotalent->m_pfKey[AT_B], autotalent->m_pfKey[AT_C], autotalent->m_pfKey[AT_Db], autotalent->m_pfKey[AT_D], autotalent->m_pfKey[AT_Eb], autotalent->m_pfKey[AT_E], autotalent->m_pfKey[AT_F], autotalent->m_pfKey[AT_Gb], autotalent->m_pfKey[AT_G], autotalent->m_pfKey[AT_Ab]);
 }
 
 
@@ -455,7 +452,6 @@ void setAutotalentParameters(Autotalent * autotalent, float * concertA, float * 
 
   // set concert A
   autotalent->m_pfTune = concertA;
-  __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "Concert A: %f", *(autotalent->m_pfTune));
 
   // set pitch correction parameters
   autotalent->m_pfFixed = fixedPitch;
@@ -464,8 +460,6 @@ void setAutotalentParameters(Autotalent * autotalent, float * concertA, float * 
   autotalent->m_pfSmooth = correctSmooth;
   autotalent->m_pfShift = pitchShift;
   autotalent->m_pfScwarp = scaleRotate;
-  __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "FixedPitch: %f, FixedPull: %f, CorrectStr: %f, CorrectSmooth: %f, PitchShift: %f, ScaleRotate: %f",
-		  *(autotalent->m_pfFixed), *(autotalent->m_pfPull), *(autotalent->m_pfAmount), *(autotalent->m_pfSmooth), *(autotalent->m_pfShift), *(autotalent->m_pfScwarp));
 
   // set LFO parameters
   autotalent->m_pfLfoamp = lfoDepth;
@@ -476,8 +470,6 @@ void setAutotalentParameters(Autotalent * autotalent, float * concertA, float * 
   autotalent->m_pfFcorr = formCorr;
   autotalent->m_pfFwarp = formWarp;
   autotalent->m_pfMix = mix;
-  __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "LFODepth: %f, LFORate: %f, LFOShape %f, LFOSym: %f, LFOQuant: %d, FormCorr: %d, FormWarp: %f, Mix: %f",
-		  *(autotalent->m_pfLfoamp), *(autotalent->m_pfLforate), *(autotalent->m_pfLfoshape), *(autotalent->m_pfLfosymm), *(autotalent->m_pfLfoquant), *(autotalent->m_pfFcorr), *(autotalent->m_pfFwarp), *(autotalent->m_pfMix));
 
   // set output parameters, note these aren't used by us
   autotalent->m_pfPitch = calloc(1, sizeof(float));
@@ -490,7 +482,6 @@ void setAutotalentParameters(Autotalent * autotalent, float * concertA, float * 
 void setAutotalentBuffers(Autotalent * autotalent, float * inputBuffer, float * outputBuffer) {
   autotalent->m_pfInputBuffer1 = inputBuffer;
   autotalent->m_pfOutputBuffer1 = outputBuffer;
-  //__android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "input buffer at address: %d, output buffer at address: %d", inputBuffer, outputBuffer);
 }
 
 
@@ -1151,7 +1142,6 @@ Autotalent * instance;
 void instantiateAutotalentInstance(unsigned long sampleRate) {
   if (instance == NULL) {
     instance = instantiateAutotalent(sampleRate);
-    __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "instantiated autotalent at %d with sample rate: %d", instance, (instance->fs));
   }
 }
 
@@ -1163,7 +1153,6 @@ Autotalent * getAutotalentInstance() {
 void freeAutotalentInstance() {
   if (instance != NULL) {
 	cleanupAutotalent(instance);
-	__android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "cleaned up autotalent at %d", instance);
 	instance = NULL;
   }
 }
@@ -1172,6 +1161,7 @@ void freeAutotalentInstance() {
  * HELPER FUNCTIONS *
  ********************/
 
+/*
 float * getFloatBuffer(JNIEnv* env, jshortArray shortArray, jsize arraySize) {
 
   int i;
@@ -1198,73 +1188,43 @@ jshort * getShortBuffer(float* floatBuffer, jsize size) {
 
   return shortBuffer;
 }
-
+*/
 
 /********************
  *  JNI INTERFACE   *
  ********************/
 
-JNIEXPORT void JNICALL Java_com_intervigil_micdroid_AutoTalent_instantiateAutoTalent
-  (JNIEnv* env, jclass class, jint sampleRate) {
-
-  // convert jint to unsigned long?
-  instantiateAutotalentInstance(sampleRate);
-}
-
-
-JNIEXPORT void JNICALL Java_com_intervigil_micdroid_AutoTalent_initializeAutoTalent
-  (JNIEnv* env, jclass class, jfloat concertA, jchar key, jfloat fixedPitch, jfloat fixedPull,
-		  jfloat correctStrength, jfloat correctSmooth, jfloat pitchShift, jfloat scaleRotate,
-		  jfloat lfoDepth, jfloat lfoRate, jfloat lfoShape, jfloat lfoSym, jint lfoQuant,
-		  jint formCorr, jfloat formWarp, jfloat mix) {
-
-  __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "initializing autotalent");
-
+void
+initializeAutotalent(float concertA, char key, float fixedPitch, float fixedPull,
+                     float correctStrength, float correctSmooth, float pitchShift, float scaleRotate,
+                     float lfoDepth, float lfoRate, float lfoShape, float lfoSym, int lfoQuant,
+                     int formCorr, float formWarp, float mix) {
   Autotalent * autotalent = getAutotalentInstance();
 
   if (autotalent != NULL) {
-    setAutotalentKey(autotalent, (char *)&key);
-
-    __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "setting parameters");
+    setAutotalentKey(autotalent, &key);
 
     setAutotalentParameters(autotalent, &concertA, &fixedPitch, &fixedPull,
   						  &correctStrength, &correctSmooth, &pitchShift, &scaleRotate,
   						  &lfoDepth, &lfoRate, &lfoShape, &lfoSym, &lfoQuant,
   						  &formCorr, &formWarp, &mix);
-
-    __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "autotalent parameters set");
   }
 }
 
 
-JNIEXPORT void JNICALL Java_com_intervigil_micdroid_AutoTalent_processSamples
-  (JNIEnv* env , jclass class, jshortArray samples, jint sampleSize) {
-
+void
+processSamples(float* samples, int sampleSize) {
   Autotalent * autotalent = getAutotalentInstance();
 
   if (autotalent != NULL) {
-    float* sampleBuffer = getFloatBuffer(env, samples, sampleSize);
-
-    setAutotalentBuffers(autotalent, sampleBuffer, sampleBuffer);
-
-    __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "autotalent run starting for %d samples", sampleSize);
+    setAutotalentBuffers(autotalent, samples, samples);
 
     runAutotalent(autotalent, sampleSize);
-
-    // copy results back up to java array
-    short* shortBuffer = getShortBuffer(sampleBuffer, sampleSize);
-    (*env)->SetShortArrayRegion(env, samples, 0, sampleSize, shortBuffer);
-
-    free(shortBuffer);
-    free(sampleBuffer);
-
-    __android_log_print(ANDROID_LOG_DEBUG, "libautotalent.so", "autotalent run completed");
   }
 }
 
 
-JNIEXPORT void JNICALL Java_com_intervigil_micdroid_AutoTalent_destroyAutoTalent
-  (JNIEnv* env, jclass class) {
-
+void
+destroyAutotalent() {
   freeAutotalentInstance();
 }

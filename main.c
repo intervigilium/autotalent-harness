@@ -1,11 +1,14 @@
 
 #include <stdio.h>
-#include "sndfile.h"
+#include <stdlib.h>
+#include <string.h>
+#include <sndfile.h>
 #include "autotalent.h"
+
 
 #define BUF_SIZE 2048
 
-
+/*
 void
 Write16BitsLowHigh(FILE *fp, int i)
 {
@@ -27,20 +30,20 @@ WriteWaveHeader(FILE * const fp, const int pcmbytes, const int freq, const int c
 {
   int bytes = (bits + 7) / 8;
 
-  /* quick and dirty, but documented */
-  fwrite("RIFF", 1, 4, fp); /* label */
-  Write32BitsLowHigh(fp, pcmbytes + 44 - 8); /* length in bytes without header */
-  fwrite("WAVEfmt ", 2, 4, fp); /* 2 labels */
-  Write32BitsLowHigh(fp, 2 + 2 + 4 + 4 + 2 + 2); /* length of PCM format declaration area */
-  Write16BitsLowHigh(fp, 1); /* is PCM? */
-  Write16BitsLowHigh(fp, channels); /* number of channels */
-  Write32BitsLowHigh(fp, freq); /* sample frequency in [Hz] */
-  Write32BitsLowHigh(fp, freq * channels * bytes); /* bytes per second */
-  Write16BitsLowHigh(fp, channels * bytes); /* bytes per sample time */
-  Write16BitsLowHigh(fp, bits); /* bits per sample */
-  fwrite("data", 1, 4, fp); /* label */
-  Write32BitsLowHigh(fp, pcmbytes); /* length in bytes of raw PCM data */
+  fwrite("RIFF", 1, 4, fp);
+  Write32BitsLowHigh(fp, pcmbytes + 44 - 8);
+  fwrite("WAVEfmt ", 2, 4, fp);
+  Write32BitsLowHigh(fp, 2 + 2 + 4 + 4 + 2 + 2);
+  Write16BitsLowHigh(fp, 1);
+  Write16BitsLowHigh(fp, channels);
+  Write32BitsLowHigh(fp, freq);
+  Write32BitsLowHigh(fp, freq * channels * bytes);
+  Write16BitsLowHigh(fp, channels * bytes);
+  Write16BitsLowHigh(fp, bits);
+  fwrite("data", 1, 4, fp);
+  Write32BitsLowHigh(fp, pcmbytes);
 }
+*/
 
 int
 main(int argc, char **argv)
@@ -79,9 +82,8 @@ main(int argc, char **argv)
       if (ofp != NULL)
       {
         /* set up autotalent */
-        Autotalent * autotalent = getAutotalentInstance();
-        setAutotalentKey(autotalent, 'c');
-        setAutotalentParameters(autotalent, 440, 0, 0.2f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.0, 0.0f, 0, 0, 0, 0.0f, 0.5f);
+        instantiateAutotalentInstance(if_info->samplerate);
+        initializeAutotalent(440, 'c', 0, 0.2f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.0f, 0.0f, 0, 0, 0.0f, 0.5f);
 
         /* set up buffer we're running through autotalent */
         int total_samples = 0;
@@ -94,14 +96,13 @@ main(int argc, char **argv)
           total_samples += samples_read;
 
           /* run buffer through autotalent */
-          setAutotalentBuffers(autotalent, buf, buf);
-          runAutotalent(autotalent, samples_read);
+          processSamples(buf, samples_read);
 
           /* write to output file */
           sf_write_float(ofp, buf, samples_read);
         } while (samples_read > 0);
 
-        freeAutotalentInstance();
+        destroyAutotalent();
         free(buf);
         sf_close(ifp);
         sf_close(ofp);
