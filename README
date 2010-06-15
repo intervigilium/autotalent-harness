@@ -1,2 +1,3 @@
 This project is just to test my own modifications to the autotalent library from outside of an Android application.
-Currently this project compiles but probably does not work correctly.
+Project requires libsndfile to work.
+
