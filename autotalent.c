@@ -603,10 +603,6 @@ void runAutotalent(Autotalent * Instance, unsigned long SampleCount) {
   fFwarp = (float) *(psAutotalent->m_pfFwarp);
   fMix = (float) *(psAutotalent->m_pfMix);
 
-  printf("Concert A: %f\n", *(psAutotalent->m_pfTune));
-  printf("FixedPitch: %f, FixedPull: %f, CorrectStr: %f, CorrectSmooth: %f, PitchShift: %f, ScaleRotate: %f\n",
-                   *(psAutotalent->m_pfFixed), *(psAutotalent->m_pfPull), *(psAutotalent->m_pfAmount), *(psAutotalent->m_pfSmooth), *(psAutotalent->m_pfShift), *(psAutotalent->m_pfScwarp));
-
   // Some logic for the semitone->scale and scale->semitone conversion
   // If no notes are selected as being in the scale, instead snap to all notes
   ti2 = 0;
@@ -1152,7 +1148,6 @@ static Autotalent * instance;
 void instantiateAutotalentInstance(unsigned long sampleRate) {
   if (instance == NULL) {
     instance = instantiateAutotalent(sampleRate);
-    printf("instantiated autotalent instance at %d\n", instance);
   }
 }
 
@@ -1170,15 +1165,14 @@ initializeAutotalent(float* concertA, char* key, float* fixedPitch, float* fixed
                      int* formCorr, float* formWarp, float* mix) {
 
   if (instance != NULL) {
-    printf("initializing autotalent instance at %d\n", instance);
-    setAutotalentKey(instance, &key);
+    setAutotalentKey(instance, key);
 
     setAutotalentParameters(instance, concertA, fixedPitch, fixedPull,
   						  correctStrength, correctSmooth, pitchShift, scaleRotate,
   						  lfoDepth, lfoRate, lfoShape, lfoSym, lfoQuant,
   						  formCorr, formWarp, mix);
 
-    printf("initialized with sample rate: %d, concert A: %f\n", instance->fs, *(instance->m_pfTune));
+    printf("initialized with sample rate: %lu, concert A: %f\n", instance->fs, *(instance->m_pfTune));
   }
 }
 
@@ -1187,8 +1181,7 @@ void
 processSamples(float* samples, int sampleSize) {
 
   if (instance != NULL) {
-    printf("processing with sample rate %d, concert A: %f\n", instance->fs, *(instance->m_pfTune));
-    printf("processing using autotalent instance at %d\n", instance);
+    printf("processing with sample rate %lu, concert A: %f\n", instance->fs, *(instance->m_pfTune));
     setAutotalentBuffers(instance, samples, samples);
     runAutotalent(instance, sampleSize);
   }
