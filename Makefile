@@ -1,7 +1,7 @@
 # Makefile
 
 CC=gcc
-CFLAGS=-c -Wall
+CFLAGS=-c -Wall -O0
 LIBS=-lsndfile
 SOURCES=autotalent.c mayer_fft.c
 OBJECTS=$(SOURCES:.c=.o)

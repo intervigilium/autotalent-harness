@@ -186,7 +186,7 @@ typedef struct {
   float* m_pfAmount;
   float* m_pfSmooth;
   float* m_pfShift;
-  float* m_pfScwarp;
+  int* m_pfScwarp;
   float* m_pfLfoamp;
   float* m_pfLforate;
   float* m_pfLfoshape;
@@ -446,12 +446,13 @@ void setAutotalentKey(Autotalent * autotalent, char * keyPtr) {
 
 // Set autotalent parameters
 void setAutotalentParameters(Autotalent * autotalent, float * concertA, float * fixedPitch, float * fixedPull,
-						float * correctStrength, float * correctSmooth,float * pitchShift, float * scaleRotate,
+						float * correctStrength, float * correctSmooth,float * pitchShift, int * scaleRotate,
 						float * lfoDepth, float * lfoRate, float * lfoShape, float * lfoSym, int * lfoQuant,
 						int * formCorr, float * formWarp, float * mix) {
 
   // set concert A
   autotalent->m_pfTune = concertA;
+  printf("Concert A: %f\n", *(autotalent->m_pfTune));
 
   // set pitch correction parameters
   autotalent->m_pfFixed = fixedPitch;
@@ -460,6 +461,8 @@ void setAutotalentParameters(Autotalent * autotalent, float * concertA, float * 
   autotalent->m_pfSmooth = correctSmooth;
   autotalent->m_pfShift = pitchShift;
   autotalent->m_pfScwarp = scaleRotate;
+  printf("FixedPitch: %f, FixedPull: %f, CorrectStr: %f, CorrectSmooth: %f, PitchShift: %f, ScaleRotate: %d\n",
+         *(autotalent->m_pfFixed), *(autotalent->m_pfPull), *(autotalent->m_pfAmount), *(autotalent->m_pfSmooth), *(autotalent->m_pfShift), *(autotalent->m_pfScwarp));
 
   // set LFO parameters
   autotalent->m_pfLfoamp = lfoDepth;
@@ -470,6 +473,8 @@ void setAutotalentParameters(Autotalent * autotalent, float * concertA, float * 
   autotalent->m_pfFcorr = formCorr;
   autotalent->m_pfFwarp = formWarp;
   autotalent->m_pfMix = mix;
+  printf("LFODepth: %f, LFORate: %f, LFOShape %f, LFOSym: %f, LFOQuant: %d, FormCorr: %d, FormWarp: %f, Mix: %f\n",
+                  *(autotalent->m_pfLfoamp), *(autotalent->m_pfLforate), *(autotalent->m_pfLfoshape), *(autotalent->m_pfLfosymm), *(autotalent->m_pfLfoquant), *(autotalent->m_pfFcorr), *(autotalent->m_pfFwarp), *(autotalent->m_pfMix));
 
   // set output parameters, note these aren't used by us
   autotalent->m_pfPitch = calloc(1, sizeof(float));
@@ -598,6 +603,10 @@ void runAutotalent(Autotalent * Instance, unsigned long SampleCount) {
   fFwarp = (float) *(psAutotalent->m_pfFwarp);
   fMix = (float) *(psAutotalent->m_pfMix);
 
+  printf("Concert A: %f\n", *(psAutotalent->m_pfTune));
+  printf("FixedPitch: %f, FixedPull: %f, CorrectStr: %f, CorrectSmooth: %f, PitchShift: %f, ScaleRotate: %f\n",
+                   *(psAutotalent->m_pfFixed), *(psAutotalent->m_pfPull), *(psAutotalent->m_pfAmount), *(psAutotalent->m_pfSmooth), *(psAutotalent->m_pfShift), *(psAutotalent->m_pfScwarp));
+
   // Some logic for the semitone->scale and scale->semitone conversion
   // If no notes are selected as being in the scale, instead snap to all notes
   ti2 = 0;
@@ -704,6 +713,7 @@ void runAutotalent(Autotalent * Instance, unsigned long SampleCount) {
 
     // Every N/noverlap samples, run pitch estimation / manipulation code
     if ((psAutotalent->cbiwr)%(N/psAutotalent->noverlap) == 0) {
+
       // ---- Obtain autocovariance ----
 
       // Window and fill FFT buffer
@@ -830,6 +840,7 @@ void runAutotalent(Autotalent * Instance, unsigned long SampleCount) {
       	tf = tf - numNotes;
       }
       outpitch = tf + numNotes*ti;
+
       // -- Done converting to scale notes --
 
       // The actual pitch correction
@@ -920,7 +931,6 @@ void runAutotalent(Autotalent * Instance, unsigned long SampleCount) {
       if (iLfoquant<=0) {
 	    outpitch = outpitch + lfoval*2;
       }
-
 
       if (outpitch<-36) outpitch = -48;
       if (outpitch>24) outpitch = 24;
@@ -1137,17 +1147,13 @@ void cleanupAutotalent(Autotalent* Instance) {
  *  THE INSTANCE    *
  ********************/
 
-Autotalent * instance;
+static Autotalent * instance;
 
 void instantiateAutotalentInstance(unsigned long sampleRate) {
   if (instance == NULL) {
     instance = instantiateAutotalent(sampleRate);
+    printf("instantiated autotalent instance at %d\n", instance);
   }
-}
-
-Autotalent * getAutotalentInstance() {
-  // warning: can return null!!
-  return instance;
 }
 
 void freeAutotalentInstance() {
@@ -1157,74 +1163,33 @@ void freeAutotalentInstance() {
   }
 }
 
-/********************
- * HELPER FUNCTIONS *
- ********************/
-
-/*
-float * getFloatBuffer(JNIEnv* env, jshortArray shortArray, jsize arraySize) {
-
-  int i;
-  short* shortBuffer = (short *)(*env)->GetPrimitiveArrayCritical(env, shortArray, 0);
-  float* floatBuffer = calloc(arraySize, sizeof(float));
-
-  for (i = 0; i < arraySize; i++) {
-    floatBuffer[i] = ((float)(shortBuffer[i])/32767.0f);
-  }
-
-  (*env)->ReleasePrimitiveArrayCritical(env, shortArray, shortBuffer, 0);
-
-  return floatBuffer;
-}
-
-
-jshort * getShortBuffer(float* floatBuffer, jsize size) {
-  int i;
-  jshort* shortBuffer = calloc(size, sizeof(jshort));
-
-  for (i = 0; i < size; i++) {
-	  shortBuffer[i] = (short)(floatBuffer[i]*32767.0f);
-  }
-
-  return shortBuffer;
-}
-*/
-
-/********************
- *  JNI INTERFACE   *
- ********************/
-
 void
-initializeAutotalent(float concertA, char key, float fixedPitch, float fixedPull,
-                     float correctStrength, float correctSmooth, float pitchShift, float scaleRotate,
-                     float lfoDepth, float lfoRate, float lfoShape, float lfoSym, int lfoQuant,
-                     int formCorr, float formWarp, float mix) {
-  Autotalent * autotalent = getAutotalentInstance();
+initializeAutotalent(float* concertA, char* key, float* fixedPitch, float* fixedPull,
+                     float* correctStrength, float* correctSmooth, float* pitchShift, int* scaleRotate,
+                     float* lfoDepth, float* lfoRate, float* lfoShape, float* lfoSym, int* lfoQuant,
+                     int* formCorr, float* formWarp, float* mix) {
 
-  if (autotalent != NULL) {
-    setAutotalentKey(autotalent, &key);
+  if (instance != NULL) {
+    printf("initializing autotalent instance at %d\n", instance);
+    setAutotalentKey(instance, &key);
 
-    setAutotalentParameters(autotalent, &concertA, &fixedPitch, &fixedPull,
-  						  &correctStrength, &correctSmooth, &pitchShift, &scaleRotate,
-  						  &lfoDepth, &lfoRate, &lfoShape, &lfoSym, &lfoQuant,
-  						  &formCorr, &formWarp, &mix);
+    setAutotalentParameters(instance, concertA, fixedPitch, fixedPull,
+  						  correctStrength, correctSmooth, pitchShift, scaleRotate,
+  						  lfoDepth, lfoRate, lfoShape, lfoSym, lfoQuant,
+  						  formCorr, formWarp, mix);
+
+    printf("initialized with sample rate: %d, concert A: %f\n", instance->fs, *(instance->m_pfTune));
   }
 }
 
 
 void
 processSamples(float* samples, int sampleSize) {
-  Autotalent * autotalent = getAutotalentInstance();
 
-  if (autotalent != NULL) {
-    setAutotalentBuffers(autotalent, samples, samples);
-
-    runAutotalent(autotalent, sampleSize);
+  if (instance != NULL) {
+    printf("processing with sample rate %d, concert A: %f\n", instance->fs, *(instance->m_pfTune));
+    printf("processing using autotalent instance at %d\n", instance);
+    setAutotalentBuffers(instance, samples, samples);
+    runAutotalent(instance, sampleSize);
   }
-}
-
-
-void
-destroyAutotalent() {
-  freeAutotalentInstance();
 }

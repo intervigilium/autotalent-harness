@@ -7,49 +7,44 @@
 
 
 #define BUF_SIZE 2048
-
-/*
-void
-Write16BitsLowHigh(FILE *fp, int i)
-{
-  putc(i & 0xff, fp);
-  putc((i >> 8) & 0xff, fp);
-}
-
-
-void
-Write32BitsLowHigh(FILE *fp, int i)
-{
-  Write16BitsLowHigh(fp, (int) (i & 0xffffL));
-  Write16BitsLowHigh(fp, (int) ((i >> 16) & 0xffffL));
-}
-
-
-void
-WriteWaveHeader(FILE * const fp, const int pcmbytes, const int freq, const int channels, const int bits)
-{
-  int bytes = (bits + 7) / 8;
-
-  fwrite("RIFF", 1, 4, fp);
-  Write32BitsLowHigh(fp, pcmbytes + 44 - 8);
-  fwrite("WAVEfmt ", 2, 4, fp);
-  Write32BitsLowHigh(fp, 2 + 2 + 4 + 4 + 2 + 2);
-  Write16BitsLowHigh(fp, 1);
-  Write16BitsLowHigh(fp, channels);
-  Write32BitsLowHigh(fp, freq);
-  Write32BitsLowHigh(fp, freq * channels * bytes);
-  Write16BitsLowHigh(fp, channels * bytes);
-  Write16BitsLowHigh(fp, bits);
-  fwrite("data", 1, 4, fp);
-  Write32BitsLowHigh(fp, pcmbytes);
-}
-*/
+#define CONCERT_A 440.0
+#define KEY_C 'c'
+#define FIXED_PITCH 0.0
+#define FIXED_PULL 0.2
+#define CORR_STR 1.0
+#define CORR_SMOOTH 0.0
+#define PITCH_SHIFT 0.0
+#define SCALE_ROTATE 0
+#define LFO_DEPTH 0.0
+#define LFO_RATE 5.0
+#define LFO_SHAPE 0.0
+#define LFO_SYMM 0.0
+#define LFO_QUANT 0
+#define FORM_CORR 0
+#define FORM_WARP 0.0
+#define MIX 0.5
 
 int
 main(int argc, char **argv)
 {
   SNDFILE *ifp, *ofp;
   SF_INFO *if_info, *of_info;
+  float concert_a = CONCERT_A;
+  char key_c = KEY_C;
+  float fixed_pitch = FIXED_PITCH;
+  float fixed_pull = FIXED_PULL;
+  float corr_str = CORR_STR;
+  float corr_smooth = CORR_SMOOTH;
+  float pitch_shift = PITCH_SHIFT;
+  int scale_rotate = SCALE_ROTATE;
+  float lfo_depth = LFO_DEPTH;
+  float lfo_rate = LFO_RATE;
+  float lfo_shape = LFO_SHAPE;
+  float lfo_symm = LFO_SYMM;
+  int lfo_quant = LFO_QUANT;
+  int form_corr = FORM_CORR;
+  float form_warp = FORM_WARP;
+  float mix = MIX;
 
   if (argc != 3)
   {
@@ -78,32 +73,38 @@ main(int argc, char **argv)
         printf("Unable to open input file!\n");
         exit(EXIT_FAILURE);
       }
-
+    
       if (ofp != NULL)
       {
         /* set up autotalent */
         instantiateAutotalentInstance(if_info->samplerate);
-        initializeAutotalent(440, 'c', 0, 0.2f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f, 5.0f, 0.0f, 0.0f, 0, 0, 0.0f, 0.5f);
+        initializeAutotalent(&concert_a, &key_c, &fixed_pitch, &fixed_pull, &corr_str, &corr_smooth, &pitch_shift, &scale_rotate, &lfo_depth, &lfo_rate, &lfo_shape, &lfo_symm, &lfo_quant, &form_corr, &form_warp, &mix);
+        printf("autotalent initialized with samplerate %d\n", if_info->samplerate);
 
         /* set up buffer we're running through autotalent */
         int total_samples = 0;
         sf_count_t samples_read = 0;
-        float *buf = (float *)calloc(BUF_SIZE, sizeof(float));
 
         do {
+          float *buf = (float *)calloc(BUF_SIZE, sizeof(float));
+
           /* read samples */
           samples_read = sf_read_float(ifp, buf, BUF_SIZE);
           total_samples += samples_read;
+          printf("read %d samples from file\n", samples_read);
 
           /* run buffer through autotalent */
           processSamples(buf, samples_read);
+          printf("processed %d samples\n", samples_read);
 
           /* write to output file */
-          sf_write_float(ofp, buf, samples_read);
+          int samples_written = sf_write_float(ofp, buf, samples_read);
+          printf("wrote %d samples to output\n", samples_written);
+
+          free(buf);
         } while (samples_read > 0);
 
-        destroyAutotalent();
-        free(buf);
+        freeAutotalentInstance();
         sf_close(ifp);
         sf_close(ofp);
       }
