@@ -1181,7 +1181,7 @@ void
 processSamples(float* samples, int sampleSize) {
 
   if (instance != NULL) {
-    printf("processing with sample rate %lu, concert A: %f\n", instance->fs, *(instance->m_pfTune));
+    //printf("processing with sample rate %lu, concert A: %f\n", instance->fs, *(instance->m_pfTune));
     setAutotalentBuffers(instance, samples, samples);
     runAutotalent(instance, sampleSize);
   }

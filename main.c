@@ -22,7 +22,7 @@
 #define LFO_QUANT 0
 #define FORM_CORR 0
 #define FORM_WARP 0.0
-#define MIX 0.5
+#define MIX 0.4
 
 int
 main(int argc, char **argv)
@@ -84,26 +84,22 @@ main(int argc, char **argv)
         /* set up buffer we're running through autotalent */
         int total_samples = 0;
         sf_count_t samples_read = 0;
+        float *buf = (float *)calloc(BUF_SIZE, sizeof(float));
 
         do {
-          float *buf = (float *)calloc(BUF_SIZE, sizeof(float));
-
           /* read samples */
           samples_read = sf_read_float(ifp, buf, BUF_SIZE);
           total_samples += samples_read;
-          printf("read %d samples from file\n", samples_read);
 
           /* run buffer through autotalent */
           processSamples(buf, samples_read);
-          printf("processed %d samples\n", samples_read);
 
           /* write to output file */
           int samples_written = sf_write_float(ofp, buf, samples_read);
-          printf("wrote %d samples to output\n", samples_written);
 
-          free(buf);
         } while (samples_read > 0);
 
+        free(buf);
         freeAutotalentInstance();
         sf_close(ifp);
         sf_close(ofp);
